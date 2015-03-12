@@ -17,7 +17,6 @@ vec3 hash3(float n) {
   return fract(sin(vec3(n, n + 1.0, n + 2.0)) * 43758.5453123);
 }
 
-//operations
 vec3 translate(vec3 point, vec3 offset) {
   return point - offset;
 }
@@ -26,7 +25,6 @@ vec3 repeat(vec3 point, vec3 c) {
   return mod(point, c) - 0.5 * c;
 }
 
-//distance functions
 float sphere(vec3 point, float radius) {
   return max(0.0, length(point) - radius);
 }
@@ -123,6 +121,7 @@ vec4 shade(vec3 surfacePos, vec3 cameraPos, int numReflections) {
   vec4 reflectionColour = BLACK;
   if (numReflections > 0) {
     vec3 incidentRay = normalize(surfacePos - cameraPos);
+    //todo: non-recursive reflections
     //reflectionColour = render(surfacePos, reflect(incidentRay, surfaceNormal), numReflections - 1);
   }
 
@@ -160,6 +159,6 @@ void main() {
       screenCoord.y * screenYDir;
   vec3 rayDir = normalize(rayOrigin - cameraPos);
 
-  vec3 noise = (10.0 / 255.0) * hash3(screenCoord.x + 13.0 * screenCoord.y + timeSec);
+  vec3 noise = (8.0 / 255.0) * hash3(screenCoord.x + 13.0 * screenCoord.y + timeSec);
   gl_FragColor = render(rayOrigin, rayDir, MAX_REFLECTIONS) + vec4(noise, 0.0);
 }

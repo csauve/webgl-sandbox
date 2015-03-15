@@ -1,8 +1,8 @@
 precision highp float;
-const float EPSILON = 0.0001;
-const float GRADIENT_STEP = 0.01;
-const float MAX_DISTANCE = 1000.0;
-const float REFLECTIVITY = 0.1;
+const float EPSILON = 0.001;
+const float GRADIENT_STEP = 0.005;
+const float MAX_DISTANCE = 500.0;
+const float REFLECTIVITY = 0.2;
 const int MAX_REFLECTIONS = 2;
 const int MAX_STEPS = 256;
 const vec4 AMBIENT_COLOUR = vec4(0.15, 0.25, 0.35, 1.0);
@@ -57,9 +57,10 @@ float sceneDistance(vec3 point) {
   );
 }
 
-float march(vec3 rayOrigin, vec3 rayDir) {
+float march(vec3 rayOrigin, vec3 rayDir, inout int cost) {
   float rayLength = EPSILON * 100.0;
   for (int i = 0; i < MAX_STEPS; i++) {
+    cost++;
     float dist = sceneDistance(rayOrigin + rayLength * rayDir);
     rayLength += dist;
     if (dist < EPSILON) return rayLength;
@@ -107,7 +108,7 @@ vec3 gradient(vec3 point, float scale) {
 
 vec4 shade(inout vec3 rayOrigin, inout vec3 rayDir, float rayLength) {
   vec3 surfacePos = rayOrigin + rayDir * rayLength;
-  vec3 surfaceNormal = gradient(surfacePos, EPSILON * 50.0);
+  vec3 surfaceNormal = gradient(surfacePos, GRADIENT_STEP);
   float lightDist = length(LIGHT_POS - surfacePos);
   float lightPower = clamp(10.0 / (lightDist * lightDist), 0.0, 1.0);
   float lightOcclusion = rayOcclusion(surfacePos, LIGHT_POS, 12.0);
@@ -127,18 +128,20 @@ vec4 shade(inout vec3 rayOrigin, inout vec3 rayDir, float rayLength) {
   return AMBIENT_COLOUR * ambientOcclusion + LIGHT_COLOUR * lightIntensity;
 }
 
-vec4 render(vec3 rayOrigin, vec3 rayDir) {
+vec4 render(vec3 rayOrigin, vec3 rayDir, inout int cost) {
   vec4 colour;
 
   for (int i = 0; i < MAX_REFLECTIONS + 1; i++) {
     vec4 surfaceColor = AMBIENT_COLOUR;
 
-    float rayLength = march(rayOrigin, rayDir);
+    float rayLength = march(rayOrigin, rayDir, cost);
     if (rayLength != -1.0) {
       surfaceColor = shade(rayOrigin, rayDir, rayLength);
+    } else if (i == 0) {
+      surfaceColor *= 0.8;
     }
 
-    colour = mix(colour, surfaceColor, i == 0 ? 1.0 : 0.2);
+    colour = mix(colour, surfaceColor, i == 0 ? 1.0 : REFLECTIVITY);
 
     if (rayLength == -1.0) break;
   }
@@ -170,8 +173,10 @@ void main() {
   float vignette = clamp(1.0 - screenRadius * screenRadius * 0.8, 0.0, 1.0);
 
   //noise
-  vec3 noise = (8.0 / 255.0) * hash3(screenCoord.x + 13.0 * screenCoord.y + timeSec);
+  vec3 noise = (8.0 / 255.0) * hash3(screenCoord.x + 13.0 * screenCoord.y + mod(timeSec, 100.0));
 
-  vec4 renderResult = render(rayOrigin, rayDir);
+  int cost = 0;
+  vec4 renderResult = render(rayOrigin, rayDir, cost);
+  // gl_FragColor = mix(vec4(0.0, 1.0, 0.0, 1.0), vec4(1.0, 0.0, 0.0, 1.0), float(cost) / 50.0);
   gl_FragColor = vec4(renderResult.xyz * vignette, 1.0) + vec4(noise, 0.0);
 }

@@ -87,7 +87,7 @@ float rayOcclusion(vec3 rayOrigin, vec3 rayDest, float k) {
   return occlusion;
 }
 
-float ambientOcclusion(vec3 surfacePos, vec3 surfaceNormal, float stepSize) {
+float doAmbientOcclusion(vec3 surfacePos, vec3 surfaceNormal, float stepSize) {
   float rayLength = stepSize;
   float occlusion = 0.0;
   for (int i = 0; i < 10; i++) {
@@ -112,7 +112,7 @@ vec4 shade(inout vec3 rayOrigin, inout vec3 rayDir, float rayLength) {
   float lightDist = length(LIGHT_POS - surfacePos);
   float lightPower = clamp(10.0 / (lightDist * lightDist), 0.0, 1.0);
   float lightOcclusion = rayOcclusion(surfacePos, LIGHT_POS, 12.0);
-  float ambientOcclusion = ambientOcclusion(surfacePos, surfaceNormal, 0.05);
+  float ambientOcclusion = doAmbientOcclusion(surfacePos, surfaceNormal, 0.05);
 
   float lightIntensity = 0.0;
   if (lightOcclusion > 0.0) {
